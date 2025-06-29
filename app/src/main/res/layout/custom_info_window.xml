@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#90d7b0"
+    android:padding="10dp">
+
+    <TextView
+        android:id="@+id/time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:text="Time: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Loc: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/distance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Distance: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/nodeId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Node Id: "
+        android:textSize="14sp"/>
+        
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#555555"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp" />
+        
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:text="Serving Cell Info"
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/plmnId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="PLMN Id: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/tac_lac"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="TAC/LAC: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/rac"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="RAC: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/cellId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Cell Id: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/technology"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Technology: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/band"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Band: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/arfcn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="ARFCN: "
+        android:textSize="14sp"/>
+        
+    <TextView
+        android:id="@+id/code"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Code: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/power"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Power: "
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/quality"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Quality: "
+        android:textSize="14sp"/>
+        
+    <TextView
+        android:id="@+id/scan_tech"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="Scan Tech: "
+        android:textSize="14sp"/>
+        
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#555555"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp" />
+        
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:text="Scan Serving SigPow"
+        android:textSize="14sp"/>
+        
+    <TextView
+        android:id="@+id/scan_sigpow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#333333"
+        android:text="-82.0 (dBm) (Very Good)"
+        android:textSize="14sp"/>
+</LinearLayout>

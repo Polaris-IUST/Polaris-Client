@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_map"
+            android:icon="@android:drawable/ic_dialog_map"
+            android:title="Cell Signal Map" />
+        
+        <item android:title="Network Tests">
+            <menu>
+                <item
+                    android:id="@+id/nav_http_test"
+                    android:icon="@android:drawable/ic_menu_upload"
+                    android:title="HTTP Throughput Test" />
+                
+                <item
+                    android:id="@+id/nav_ping_test"
+                    android:icon="@android:drawable/ic_menu_send"
+                    android:title="Ping Test" />
+                
+                <item
+                    android:id="@+id/nav_dns_test"
+                    android:icon="@android:drawable/ic_menu_search"
+                    android:title="DNS Test" />
+                
+                <item
+                    android:id="@+id/nav_web_test"
+                    android:icon="@android:drawable/ic_menu_view"
+                    android:title="Web Test" />
+                
+                <item
+                    android:id="@+id/nav_sms_test"
+                    android:icon="@android:drawable/ic_dialog_email"
+                    android:title="SMS Test" />
+                
+                <item
+                    android:id="@+id/nav_speed_test"
+                    android:icon="@android:drawable/ic_menu_rotate"
+                    android:title="Speed Test" />
+            </menu>
+        </item>
+    </group>
+    
+    <group android:checkableBehavior="single">
+        <item android:title="Settings">
+            <menu>
+                <item
+                    android:id="@+id/nav_theme_toggle"
+                    android:icon="@android:drawable/ic_menu_preferences"
+                    android:title="Toggle Dark Mode" />
+                
+                <item
+                    android:id="@+id/nav_background_service"
+                    android:icon="@drawable/ic_background_service"
+                    android:title="Start Background Service" />
+            </menu>
+        </item>
+    </group>
+</menu> 
