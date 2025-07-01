@@ -234,4 +234,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         db.close()
         return resultList
     }
+
+    fun clearAllData() {
+        val db = this.writableDatabase
+        db.delete(TABLE_NAME, null, null)
+        db.delete(NETWORK_TEST_TABLE, null, null)
+        db.close()
+    }
 }

@@ -26,6 +26,8 @@ import com.example.polaris_client.utils.ThemeManager
 import com.example.polaris_client.R
 import com.google.android.material.navigation.NavigationView
 import com.example.polaris_client.utils.TokenManager
+import com.example.polaris_client.utils.DatabaseHelper
+import androidx.appcompat.app.AlertDialog
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -273,12 +275,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 return
             }
             R.id.nav_logout -> {
-                TokenManager(this).clearAuth()
-                getSharedPreferences("login_prefs", MODE_PRIVATE).edit().clear().apply()
-                val intent = Intent(this, com.example.polaris_client.views.auth.LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-                finish()
+                AlertDialog.Builder(this)
+                    .setTitle("Logout and Clear Data")
+                    .setMessage("Are you sure you want to logout and clear all app data?")
+                    .setPositiveButton("Yes") { _, _ ->
+                        // Clear all app data
+                        DatabaseHelper(this).clearAllData()
+                        TokenManager(this).clearAuth()
+                        getSharedPreferences("login_prefs", MODE_PRIVATE).edit().clear().apply()
+                        Toast.makeText(this, "Logged out and all data cleared", Toast.LENGTH_SHORT).show()
+                        val intent = Intent(this, com.example.polaris_client.views.auth.LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                        finish()
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
                 return
             }
         }
