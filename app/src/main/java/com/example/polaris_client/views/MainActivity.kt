@@ -273,11 +273,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 return
             }
             R.id.nav_logout -> {
-                // Clear auth token and user info
                 TokenManager(this).clearAuth()
-                // Clear saved login credentials
                 getSharedPreferences("login_prefs", MODE_PRIVATE).edit().clear().apply()
-                // Go to LoginActivity
                 val intent = Intent(this, com.example.polaris_client.views.auth.LoginActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
@@ -290,6 +287,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         handleNavigationItemSelected(item.itemId)
         drawerLayout.closeDrawer(GravityCompat.START)
+        // Show a Toast for logout
+        if (item.itemId == R.id.nav_logout) {
+            Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
+        }
         return true
     }
 

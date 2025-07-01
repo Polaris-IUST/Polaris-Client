@@ -9,6 +9,11 @@ import com.example.polaris_client.views.MainActivity
 import com.example.polaris_client.utils.ThemeManager
 import com.example.polaris_client.databinding.ActivitySignupBinding
 import com.example.polaris_client.utils.TokenManager
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
 
 class SignupActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySignupBinding
@@ -110,14 +115,45 @@ class SignupActivity : AppCompatActivity() {
         val name = binding.nameInput.text.toString()
         val email = binding.emailInput.text.toString()
         val password = binding.passwordInput.text.toString()
+        val username = name // or use a separate username field if you have one
 
-        // TODO: Replace with actual API call
-        // For now, we'll simulate a successful signup
-        val mockToken = "mock_token_${System.currentTimeMillis()}"
-        tokenManager.saveToken(mockToken)
-        tokenManager.saveUserInfo("1", email, name)
-
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
+        val client = OkHttpClient()
+        val json = JSONObject()
+        json.put("username", username)
+        json.put("password", password)
+        json.put("email",email)
+        val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("https://odysseyanalytics.ir/polaris/api/signup/")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Accept", "application/json")
+            .post(requestBody)
+            .build()        
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this@SignupActivity, "Network error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    runOnUiThread {
+                        Toast.makeText(this@SignupActivity, "Signup successful! Please log in.", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@SignupActivity, LoginActivity::class.java))
+                        finish()
+                    }
+                } else {
+                    val errorBody = response.body?.string()
+                    val errorMsg = try {
+                        JSONObject(errorBody).toString(2)
+                    } catch (e: Exception) {
+                        "Signup failed: ${response.code}"
+                    }
+                    runOnUiThread {
+                        Toast.makeText(this@SignupActivity, errorMsg, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        })
     }
 } 

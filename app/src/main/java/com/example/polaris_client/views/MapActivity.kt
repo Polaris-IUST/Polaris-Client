@@ -44,6 +44,7 @@ import com.example.polaris_client.utils.ThemeManager
 import com.example.polaris_client.R
 import com.google.android.gms.maps.model.LatLngBounds
 import android.content.Context
+import com.example.polaris_client.utils.TokenManager
 
 
 @SuppressLint("MissingPermission")
@@ -125,6 +126,16 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
             }
             R.id.nav_background_service -> {
                 toggleBackgroundService()
+                return true
+            }
+            R.id.nav_logout -> {
+                TokenManager(this).clearAuth()
+                getSharedPreferences("login_prefs", MODE_PRIVATE).edit().clear().apply()
+                Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, com.example.polaris_client.views.auth.LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
                 return true
             }
         }
