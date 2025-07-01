@@ -9,6 +9,17 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Random
+import com.example.polaris_client.models.DownloadTestResult
+import com.example.polaris_client.models.UploadTestResult
+import com.example.polaris_client.models.MeasuredLatencyResult
+import com.example.polaris_client.utils.TokenManager
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import java.io.IOException
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 class NetworkSpeedTestService(private val context: Context) {
     private val dbHelper = DatabaseHelper(context)
@@ -78,6 +89,10 @@ class NetworkSpeedTestService(private val context: Context) {
                 val longitude = LocationService.lastKnownLocation?.longitude ?: 0.0
                 dbHelper.insertNetworkTestData("SPEED_DOWN", downloadSpeed.toString(), 
                                              "Duration: ${testDuration/1000}s", latitude, longitude)
+                
+                val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+                val result = DownloadTestResult(longitude, latitude, downloadSpeed, "${testDuration/1000}s", currentTime)
+                sendDownloadTestResultToServer(result)
                 
                 withContext(Dispatchers.Main) {
                     listener.onDownloadComplete(downloadSpeed)
@@ -202,6 +217,10 @@ class NetworkSpeedTestService(private val context: Context) {
                 dbHelper.insertNetworkTestData("SPEED_UP", uploadSpeed.toString(), 
                                              "Duration: ${testDuration/1000}s", latitude, longitude)
                 
+                val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+                val result = UploadTestResult(longitude, latitude, uploadSpeed, testDuration/1000f, currentTime)
+                sendUploadTestResultToServer(result)
+                
                 withContext(Dispatchers.Main) {
                     listener.onUploadComplete(uploadSpeed)
                 }
@@ -279,6 +298,10 @@ class NetworkSpeedTestService(private val context: Context) {
                 dbHelper.insertNetworkTestData("SPEED_UP_FALLBACK", uploadSpeed.toString(), 
                                              "Duration: ${testDuration/1000}s", latitude, longitude)
                 
+                val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+                val result = UploadTestResult(longitude, latitude, uploadSpeed, testDuration/1000f, currentTime)
+                sendUploadTestResultToServer(result)
+                
                 withContext(Dispatchers.Main) {
                     listener.onUploadComplete(uploadSpeed)
                 }
@@ -351,6 +374,10 @@ class NetworkSpeedTestService(private val context: Context) {
                 val longitude = LocationService.lastKnownLocation?.longitude ?: 0.0
                 dbHelper.insertNetworkTestData("LATENCY", avgLatency.toString(), 
                                              "Jitter: ${jitter}ms", latitude, longitude)
+                
+                val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+                val result = MeasuredLatencyResult(longitude, latitude, avgLatency.toFloat(), jitter, currentTime)
+                sendMeasuredLatencyResultToServer(result)
                 
                 Pair(avgLatency, jitter)
             } catch (e: Exception) {
@@ -434,6 +461,105 @@ class NetworkSpeedTestService(private val context: Context) {
         }
         
         return jitterSum / (latencyValues.size - 1)
+    }
+    
+    private fun sendDownloadTestResultToServer(result: DownloadTestResult) {
+        val tokenManager = TokenManager(context)
+        val token = tokenManager.getToken() ?: return
+        val client = OkHttpClient()
+        val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+        val json = JSONObject().apply {
+            put("longitude", result.longitude)
+            put("latitude", result.latitude)
+            put("DownloadSpeed", result.DownloadSpeed)
+            put("Duration", result.Duration)
+            put("time", currentTime)
+        }
+        val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("https://odysseyanalytics.ir/polaris/api/downloadtest/create/")
+            .addHeader("Authorization", "Token $token")
+            .addHeader("Content-Type", "application/json")
+            .post(requestBody)
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("NetworkSpeedTestService", "Failed to send download test: ${e.localizedMessage}")
+            }
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    Log.d("NetworkSpeedTestService", "Download test uploaded successfully")
+                } else {
+                    Log.e("NetworkSpeedTestService", "Download upload failed: ${response.code}")
+                }
+            }
+        })
+    }
+
+    private fun sendUploadTestResultToServer(result: UploadTestResult) {
+        val tokenManager = TokenManager(context)
+        val token = tokenManager.getToken() ?: return
+        val client = OkHttpClient()
+        val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+        val json = JSONObject().apply {
+            put("longitude", result.longitude)
+            put("latitude", result.latitude)
+            put("UploadSpeed", result.UploadSpeed)
+            put("Duration", result.Duration)
+            put("time", currentTime)
+        }
+        val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("https://odysseyanalytics.ir/polaris/api/uploadtest/create/")
+            .addHeader("Authorization", "Token $token")
+            .addHeader("Content-Type", "application/json")
+            .post(requestBody)
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("NetworkSpeedTestService", "Failed to send upload test: ${e.localizedMessage}")
+            }
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    Log.d("NetworkSpeedTestService", "Upload test uploaded successfully")
+                } else {
+                    Log.e("NetworkSpeedTestService", "Upload upload failed: ${response.code}")
+                }
+            }
+        })
+    }
+
+    private fun sendMeasuredLatencyResultToServer(result: MeasuredLatencyResult) {
+        val tokenManager = TokenManager(context)
+        val token = tokenManager.getToken() ?: return
+        val client = OkHttpClient()
+        val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+        val json = JSONObject().apply {
+            put("longitude", result.longitude)
+            put("latitude", result.latitude)
+            put("avgLatency", result.avgLatency)
+            put("jitter", result.jitter)
+            put("time", currentTime)
+        }
+        val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("https://odysseyanalytics.ir/polaris/api/measuredlatency/create/")
+            .addHeader("Authorization", "Token $token")
+            .addHeader("Content-Type", "application/json")
+            .post(requestBody)
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("NetworkSpeedTestService", "Failed to send latency test: ${e.localizedMessage}")
+            }
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    Log.d("NetworkSpeedTestService", "Latency test uploaded successfully")
+                } else {
+                    Log.e("NetworkSpeedTestService", "Latency upload failed: ${response.code}")
+                }
+            }
+        })
     }
     
     interface SpeedTestListener {
