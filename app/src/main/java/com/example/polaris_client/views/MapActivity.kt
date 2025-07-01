@@ -20,7 +20,6 @@ import com.example.polaris_client.views.ui.tests.DnsTestFragment
 import com.example.polaris_client.views.ui.tests.HttpTestFragment
 import com.example.polaris_client.views.ui.tests.PingTestFragment
 import com.example.polaris_client.views.ui.tests.SmsTestFragment
-import com.example.polaris_client.views.ui.tests.WebTestFragment
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -112,7 +111,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
                 drawerLayout.closeDrawer(GravityCompat.START)
             }
             R.id.nav_http_test, R.id.nav_ping_test, R.id.nav_dns_test, 
-            R.id.nav_web_test, R.id.nav_sms_test, R.id.nav_speed_test -> {
+            R.id.nav_sms_test, R.id.nav_speed_test -> {
                 // Go back to MainActivity and let it handle showing the fragment
                 val intent = Intent(this, MainActivity::class.java)
                 intent.putExtra("navigationItemId", item.itemId)

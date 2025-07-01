@@ -18,7 +18,6 @@ import com.example.polaris_client.views.ui.tests.HttpTestFragment
 import com.example.polaris_client.views.ui.tests.PingTestFragment
 import com.example.polaris_client.views.ui.tests.SmsTestFragment
 import com.example.polaris_client.views.ui.tests.SpeedTestFragment
-import com.example.polaris_client.views.ui.tests.WebTestFragment
 import com.example.polaris_client.controllers.LocationService
 import com.example.polaris_client.controllers.CellularService
 import com.example.polaris_client.controllers.ServiceManager
@@ -245,12 +244,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     .replace(R.id.fragment_container, DnsTestFragment())
                     .commit()
                 supportActionBar?.title = "DNS Test"
-            }
-            R.id.nav_web_test -> {
-                supportFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, WebTestFragment())
-                    .commit()
-                supportActionBar?.title = "Web Test"
             }
             R.id.nav_sms_test -> {
                 supportFragmentManager.beginTransaction()

@@ -27,11 +27,6 @@
                     android:title="DNS Test" />
                 
                 <item
-                    android:id="@+id/nav_web_test"
-                    android:icon="@android:drawable/ic_menu_view"
-                    android:title="Web Test" />
-                
-                <item
                     android:id="@+id/nav_sms_test"
                     android:icon="@android:drawable/ic_dialog_email"
                     android:title="SMS Test" />
