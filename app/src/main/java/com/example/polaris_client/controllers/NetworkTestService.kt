@@ -13,50 +13,56 @@ import android.content.Context.RECEIVER_NOT_EXPORTED
 import android.app.PendingIntent
 import android.content.Intent
 import com.example.polaris_client.models.DnsTestResult
+import com.example.polaris_client.models.HttpTestResult
 import com.example.polaris_client.utils.DatabaseHelper
 
 class NetworkTestService(private val context: Context) {
     private val dbHelper = DatabaseHelper(context)
     
     // HTTP Throughput Test
-    suspend fun runHttpTest(url: String): Float {
+    suspend fun runHttpTest(url: String): HttpTestResult? {
         return withContext(Dispatchers.IO) {
             try {
                 val startTime = System.currentTimeMillis()
                 val connection = URL(url).openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.connect()
-                
-                val contentLength = connection.contentLength
+
                 val inputStream = connection.inputStream
                 val buffer = ByteArray(8192)
-                var bytesRead: Int
-                var totalBytesRead = 0
-                
-                while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                    totalBytesRead += bytesRead
-                }
-                
+                while (inputStream.read(buffer) != -1) { /* consume */ }
+
                 val endTime = System.currentTimeMillis()
-                val duration = (endTime - startTime) / 1000f // in seconds
-                val throughputKbps = (totalBytesRead * 8 / 1000f) / duration // in kbps
-                
+                val durationMs = (endTime - startTime).toFloat()
+
                 inputStream.close()
                 connection.disconnect()
-                
-                // Save the result to database
+
                 val latitude = LocationService.lastKnownLocation?.latitude ?: 0.0
                 val longitude = LocationService.lastKnownLocation?.longitude ?: 0.0
-                dbHelper.insertNetworkTestData("HTTP", throughputKbps.toString(), duration.toString(), latitude, longitude)
-                
-                throughputKbps
+
+                dbHelper.insertNetworkTestData(
+                    "HTTP",
+                    durationMs.toString(),
+                    durationMs.toString(),
+                    latitude,
+                    longitude
+                )
+
+                HttpTestResult(
+                    responseTime = durationMs,
+                    latitude = latitude,
+                    longitude = longitude,
+                    hostname = url
+                )
             } catch (e: Exception) {
                 Log.e("NetworkTestService", "HTTP test error: ${e.message}")
-                -1f
+                null
             }
         }
     }
-    
+
+
     // Ping Test
     suspend fun runPingTest(host: String, count: Int = 5): Float {
         return withContext(Dispatchers.IO) {
