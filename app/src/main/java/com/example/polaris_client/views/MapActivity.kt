@@ -56,6 +56,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
     private var currentLocationMarker: Marker? = null
     private var locationManager: android.location.LocationManager? = null
     private var locationListener: android.location.LocationListener? = null
+    private var circleAlpha: Int = 180 // Default to ~70% opacity
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Initialize theme before setting content view
@@ -198,7 +199,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
         val currentLocation = getCurrentLocation()
         
         // Draw all data points
-        for (entry in data) {
+        for (entry in data.sortedBy { it.signalStrength }) {
             val location = LatLng(entry.latitude, entry.longitude)
             
             // Determine the signal quality based on the technology
@@ -214,7 +215,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
                 CircleOptions()
                     .center(location)
                     .radius(10.0)  // Increased radius for better visibility
-                    .fillColor(getColorBySignalPower(entry.signalStrength))
+                    .fillColor(getColorBySignalPower(entry.signalStrength, circleAlpha))
                     .strokeWidth(2f)  // Add stroke for better definition
                     .strokeColor(Color.WHITE)  // White border for contrast
             )
@@ -318,6 +319,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
             marker.showInfoWindow()
             true
         }
+
+        mMap.isBuildingsEnabled = false
     }
 
     fun formatTimestamp(timestamp: String): String {
@@ -387,37 +390,15 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
     }
 
     // Generate color based on signal power (dBm) using a continuous gradient
-    private fun getColorBySignalPower(signalPower: Int): Int {
-        // Signal power ranges typically from -50 dBm (excellent) to -120 dBm (very poor)
-        val minPower = -120  // Very poor signal
-        val maxPower = -50   // Excellent signal
-        
-        // Clamp the signal power to our range
-        val clampedPower = when {
-            signalPower > maxPower -> maxPower
-            signalPower < minPower -> minPower
-            else -> signalPower
+    private fun getColorBySignalPower(signalPower: Int, alpha: Int = circleAlpha): Int {
+        return when {
+            signalPower in -70..-50 -> android.graphics.Color.argb(alpha, 0, 200, 0) // Green
+            signalPower in -85..-71 -> android.graphics.Color.argb(alpha, 144, 238, 144) // Light Green
+            signalPower in -100..-86 -> android.graphics.Color.argb(alpha, 255, 191, 0) // Amber
+            signalPower in -110..-101 -> android.graphics.Color.argb(alpha, 255, 87, 34) // Orange-Red
+            signalPower <= -111 -> android.graphics.Color.argb(alpha, 139, 69, 19) // Reddish Brown
+            else -> android.graphics.Color.argb(alpha, 150, 150, 150) // Default/Unknown
         }
-        
-        // Calculate where this signal falls in our range (0.0 to 1.0)
-        val normalizedPower = (clampedPower - minPower).toFloat() / (maxPower - minPower)
-        
-        // Use the normalized value to interpolate between red (poor) and green (good)
-        val red: Int
-        val green: Int
-        val blue = 0  // No blue component in our gradient
-        
-        if (normalizedPower < 0.5) {
-            // Poor to moderate (red to yellow)
-            red = 255
-            green = (normalizedPower * 2 * 255).toInt()
-        } else {
-            // Moderate to good (yellow to green)
-            red = ((1 - normalizedPower) * 2 * 255).toInt()
-            green = 255
-        }
-        
-        return Color.rgb(red, green, blue)
     }
     
     private fun toggleBackgroundService() {
@@ -459,7 +440,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
         val currentLocation = getCurrentLocation()
         
         // Draw all data points
-        for (entry in data) {
+        for (entry in data.sortedBy { it.signalStrength }) {
             val location = LatLng(entry.latitude, entry.longitude)
             val signalQuality = when(entry.technology) {
                 "GSM" -> getGsmSignalQuality(entry.signalStrength)
@@ -473,7 +454,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
                 CircleOptions()
                     .center(location)
                     .radius(10.0)  // Increased radius for better visibility
-                    .fillColor(getColorBySignalPower(entry.signalStrength))
+                    .fillColor(getColorBySignalPower(entry.signalStrength, circleAlpha))
                     .strokeWidth(2f)  // Add stroke for better definition
                     .strokeColor(Color.WHITE)  // White border for contrast
             )
