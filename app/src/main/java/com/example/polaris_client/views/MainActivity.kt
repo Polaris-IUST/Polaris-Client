@@ -25,6 +25,7 @@ import com.example.polaris_client.controllers.ServiceManager
 import com.example.polaris_client.utils.ThemeManager
 import com.example.polaris_client.R
 import com.google.android.material.navigation.NavigationView
+import com.example.polaris_client.utils.TokenManager
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -269,6 +270,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             R.id.nav_background_service -> {
                 toggleBackgroundService()
+                return
+            }
+            R.id.nav_logout -> {
+                // Clear auth token and user info
+                TokenManager(this).clearAuth()
+                // Clear saved login credentials
+                getSharedPreferences("login_prefs", MODE_PRIVATE).edit().clear().apply()
+                // Go to LoginActivity
+                val intent = Intent(this, com.example.polaris_client.views.auth.LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
                 return
             }
         }
