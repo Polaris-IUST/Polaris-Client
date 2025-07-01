@@ -3,6 +3,7 @@ package com.example.polaris_client.views.auth
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
@@ -99,12 +100,14 @@ class LoginActivity : AppCompatActivity() {
     private fun performLogin(username: String, password: String) {
         binding.loginButton.isEnabled = false
         val client = OkHttpClient()
-        val json = """
-            {\n                \"email\": \"$username\",\n                \"password\": \"$password\"\n            }
-        """.trimIndent()
-        val requestBody = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+        val json = JSONObject()
+        json.put("email", username)
+        json.put("password", password)
+        val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
             .url("https://odysseyanalytics.ir/polaris/api/api-token-auth/")
+            .addHeader("Content-Type", "application/json")
+            .addHeader("Accept", "application/json")
             .post(requestBody)
             .build()
         client.newCall(request).enqueue(object : Callback {
