@@ -1,6 +1,7 @@
 package com.example.polaris_client.views.ui.tests
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,8 +16,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.polaris_client.utils.DatabaseHelper
 import com.example.polaris_client.controllers.NetworkTestService
 import com.example.polaris_client.R
+import com.example.polaris_client.models.PingTestResult
+import com.example.polaris_client.utils.TokenManager
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
+import java.io.IOException
+
 
 class PingTestFragment : Fragment() {
 
@@ -44,7 +53,7 @@ class PingTestFragment : Fragment() {
         recyclerView = root.findViewById(R.id.results_recycler_view)
 
         recyclerView.layoutManager = LinearLayoutManager(context)
-        
+
         networkTestService = NetworkTestService(requireContext())
         dbHelper = DatabaseHelper(requireContext())
 
@@ -54,38 +63,86 @@ class PingTestFragment : Fragment() {
                 Toast.makeText(context, "Please enter a host", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            
+
             val countText = pingCountInput.text.toString()
             val count = if (countText.isEmpty()) 5 else countText.toInt()
-            
+
             runTest(host, count)
         }
-        
+
         loadPreviousResults()
 
         return root
     }
-    
+
+    private fun sendPingDataToServer(testResult: PingTestResult) {
+        val tokenManager = TokenManager(requireContext())
+        val token = tokenManager.getToken()
+        if (token.isNullOrEmpty()) {
+            Log.e("NetworkTestService", "User not authenticated")
+            return
+        }
+
+        val client = OkHttpClient()
+
+        val currentTime =
+            java.time.ZonedDateTime.now().format(java.time.format.DateTimeFormatter.ISO_INSTANT)
+
+        val json = org.json.JSONObject().apply {
+            put("longitude", testResult.longitude)
+            put("latitude", testResult.latitude)
+            put("avgResponseTime", testResult.avgResponseTime)
+            put("suceessCountRate", testResult.successRate)
+            put("time", currentTime)
+        }
+
+        val requestBody =
+            json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        val request = Request.Builder()
+            .url("https://odysseyanalytics.ir/polaris/api/pingtest/create/")
+            .addHeader("Authorization", "Token $token")
+            .addHeader("Content-Type", "application/json")
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                Log.e("NetworkTestService", "Failed to send ping data: ${e.localizedMessage}")
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                if (response.isSuccessful) {
+                    Log.d("NetworkTestService", "Ping data uploaded successfully")
+                } else {
+                    Log.e("NetworkTestService", "Upload failed: ${response.code}")
+                }
+            }
+        })
+    }
+
     private fun runTest(host: String, count: Int) {
         progressBar.visibility = View.VISIBLE
         startButton.isEnabled = false
         resultText.text = "Running ping test..."
-        
+
         lifecycleScope.launch {
-            val result = networkTestService.runPingTest(host, count)
+            val testResult = networkTestService.runPingTest(host, count)
             progressBar.visibility = View.GONE
             startButton.isEnabled = true
-            
-            if (result >= 0) {
-                resultText.text = "Ping response time: ${String.format("%.2f", result)} ms"
+
+            if (testResult != null) {
+                resultText.text = "Ping avg response: ${String.format("%.2f", testResult.avgResponseTime)} ms, Success rate: ${String.format("%.2f", testResult.successRate)}%"
+                sendPingDataToServer(testResult) // send result to server
             } else {
                 resultText.text = "Error running ping test. Please check the host and try again."
             }
-            
+
             loadPreviousResults()
         }
     }
-    
+
+
     private fun loadPreviousResults() {
         val results = dbHelper.getNetworkTestResults("PING")
         recyclerView.adapter = TestResultAdapter(results)

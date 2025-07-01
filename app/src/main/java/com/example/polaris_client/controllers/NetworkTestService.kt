@@ -14,6 +14,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import com.example.polaris_client.models.DnsTestResult
 import com.example.polaris_client.models.HttpTestResult
+import com.example.polaris_client.models.PingTestResult
 import com.example.polaris_client.utils.DatabaseHelper
 
 class NetworkTestService(private val context: Context) {
@@ -64,34 +65,40 @@ class NetworkTestService(private val context: Context) {
 
 
     // Ping Test
-    suspend fun runPingTest(host: String, count: Int = 5): Float {
+    suspend fun runPingTest(host: String, count: Int = 5): PingTestResult? {
         return withContext(Dispatchers.IO) {
             try {
                 var totalTime = 0f
                 var successCount = 0
-                
+
                 repeat(count) {
                     val startTime = System.currentTimeMillis()
-                    val isReachable = InetAddress.getByName(host).isReachable(5000) // 5 second timeout
+                    val isReachable = InetAddress.getByName(host).isReachable(5000)
                     val endTime = System.currentTimeMillis()
-                    
+
                     if (isReachable) {
                         totalTime += (endTime - startTime)
                         successCount++
                     }
                 }
-                
-                val avgResponseTime = if (successCount > 0) totalTime / successCount else -1f
-                
-                // Save the result to database
+
+                if (successCount == 0) return@withContext null
+
+                val avgResponseTime = totalTime / successCount
+                val successRate = (successCount / count.toFloat()) * 100f
+
                 val latitude = LocationService.lastKnownLocation?.latitude ?: 0.0
                 val longitude = LocationService.lastKnownLocation?.longitude ?: 0.0
-                dbHelper.insertNetworkTestData("PING", avgResponseTime.toString(), successCount.toString(), latitude, longitude)
-                
-                avgResponseTime
+
+                // Save to local DB
+                dbHelper.insertNetworkTestData("PING", avgResponseTime.toString(), successRate.toString(), latitude, longitude)
+
+                // Return as PingTestResult
+                PingTestResult(avgResponseTime, successRate, latitude, longitude, host)
+
             } catch (e: Exception) {
                 Log.e("NetworkTestService", "Ping test error: ${e.message}")
-                -1f
+                null
             }
         }
     }
