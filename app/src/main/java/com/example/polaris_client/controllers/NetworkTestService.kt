@@ -8,14 +8,20 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.URL
-import java.util.Date
 import android.content.Context.RECEIVER_NOT_EXPORTED
-import android.app.PendingIntent
-import android.content.Intent
 import com.example.polaris_client.models.DnsTestResult
 import com.example.polaris_client.models.HttpTestResult
 import com.example.polaris_client.models.PingTestResult
 import com.example.polaris_client.utils.DatabaseHelper
+import android.app.Activity
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
+import com.example.polaris_client.models.SmsTestResult
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
 
 class NetworkTestService(private val context: Context) {
     private val dbHelper = DatabaseHelper(context)
@@ -159,27 +165,35 @@ class NetworkTestService(private val context: Context) {
         try {
             val sentTime = Date().time
             val smsManager = SmsManager.getDefault()
-            
+
             // Create explicit intents by setting the package
             val sentIntent = Intent("SMS_SENT").apply {
                 setPackage(context.packageName)
             }
-            
+
             val deliveredIntent = Intent("SMS_DELIVERED").apply {
                 setPackage(context.packageName)
             }
-            
-            val sentPI = PendingIntent.getBroadcast(context, 0, 
-                sentIntent, PendingIntent.FLAG_IMMUTABLE)
-                
-            val deliveredPI = PendingIntent.getBroadcast(context, 0,
-                deliveredIntent, PendingIntent.FLAG_IMMUTABLE)
-                
-            // Set up broadcast receivers
-            context.registerReceiver(object : android.content.BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: android.content.Intent) {
+
+            val sentPI = PendingIntent.getBroadcast(
+                context,
+                0,
+                sentIntent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val deliveredPI = PendingIntent.getBroadcast(
+                context,
+                0,
+                deliveredIntent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+
+            // SENT receiver
+            context.registerReceiver(object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
                     when (resultCode) {
-                        android.app.Activity.RESULT_OK -> {
+                        Activity.RESULT_OK -> {
                             Log.d("SMS", "SMS sent successfully")
                         }
                         else -> {
@@ -188,32 +202,53 @@ class NetworkTestService(private val context: Context) {
                     }
                     context.unregisterReceiver(this)
                 }
-            }, android.content.IntentFilter("SMS_SENT"), RECEIVER_NOT_EXPORTED)
-            
-            context.registerReceiver(object : android.content.BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: android.content.Intent) {
+            }, IntentFilter("SMS_SENT"), Context.RECEIVER_NOT_EXPORTED)
+
+            // DELIVERED receiver
+            context.registerReceiver(object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
                     val deliveredTime = Date().time
-                    val deliveryTime = deliveredTime - sentTime
-                    
-                    // Save the result to database
+                    val deliveryTimeMs = deliveredTime - sentTime
+                    val deliveryTimeSeconds = deliveryTimeMs / 1000f
+
                     val latitude = LocationService.lastKnownLocation?.latitude ?: 0.0
                     val longitude = LocationService.lastKnownLocation?.longitude ?: 0.0
-                    dbHelper.insertNetworkTestData("SMS", deliveryTime.toString(), phoneNumber, latitude, longitude)
-                    
-                    listener.onSmsDelivered(deliveryTime)
+                    val currentTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
+
+                    val smsTestResult = SmsTestResult(
+                        longitude = longitude,
+                        latitude = latitude,
+                        deliveryTime = deliveryTimeSeconds,
+                        phoneNumber = phoneNumber,
+                        time = currentTime
+                    )
+
+                    // Save to database if needed
+                    dbHelper.insertNetworkTestData(
+                        "SMS",
+                        deliveryTimeSeconds.toString(),
+                        phoneNumber,
+                        latitude,
+                        longitude
+                    )
+
+                    listener.onSmsDelivered(smsTestResult)
                     context.unregisterReceiver(this)
                 }
-            }, android.content.IntentFilter("SMS_DELIVERED"), RECEIVER_NOT_EXPORTED)
-            
+            }, IntentFilter("SMS_DELIVERED"), Context.RECEIVER_NOT_EXPORTED)
+
             smsManager.sendTextMessage(phoneNumber, null, message, sentPI, deliveredPI)
+
         } catch (e: Exception) {
             Log.e("NetworkTestService", "SMS test error: ${e.message}")
             listener.onSmsDeliveryFailed(e.message ?: "Unknown error")
         }
     }
-    
+
+
+
     interface SmsDeliveryListener {
-        fun onSmsDelivered(deliveryTimeMs: Long)
+        fun onSmsDelivered(result: SmsTestResult)
         fun onSmsDeliveryFailed(error: String)
     }
 } 
