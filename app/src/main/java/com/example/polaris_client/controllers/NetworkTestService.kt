@@ -12,6 +12,7 @@ import java.util.Date
 import android.content.Context.RECEIVER_NOT_EXPORTED
 import android.app.PendingIntent
 import android.content.Intent
+import com.example.polaris_client.models.DnsTestResult
 import com.example.polaris_client.utils.DatabaseHelper
 
 class NetworkTestService(private val context: Context) {
@@ -88,28 +89,31 @@ class NetworkTestService(private val context: Context) {
             }
         }
     }
-    
+
+
     // DNS Test
-    suspend fun runDnsTest(hostname: String): Float {
+    suspend fun runDnsTest(hostname: String): DnsTestResult? {
         return withContext(Dispatchers.IO) {
             try {
                 val startTime = System.currentTimeMillis()
                 InetAddress.getByName(hostname)
                 val endTime = System.currentTimeMillis()
                 val responseTime = (endTime - startTime).toFloat()
-                
-                // Save the result to database
+
+                // Save to DB as before
                 val latitude = LocationService.lastKnownLocation?.latitude ?: 0.0
                 val longitude = LocationService.lastKnownLocation?.longitude ?: 0.0
                 dbHelper.insertNetworkTestData("DNS", responseTime.toString(), hostname, latitude, longitude)
-                
-                responseTime
+
+                DnsTestResult(responseTime, latitude, longitude, hostname)
+
             } catch (e: Exception) {
                 Log.e("NetworkTestService", "DNS test error: ${e.message}")
-                -1f
+                null
             }
         }
     }
+
     
     // Web Test
     suspend fun runWebTest(url: String): Float {

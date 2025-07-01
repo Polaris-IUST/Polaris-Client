@@ -15,8 +15,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.polaris_client.utils.DatabaseHelper
 import com.example.polaris_client.controllers.NetworkTestService
 import com.example.polaris_client.R
+import com.example.polaris_client.models.DnsTestResult
+import com.example.polaris_client.utils.TokenManager
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
+import java.io.IOException
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
+
 
 class DnsTestFragment : Fragment() {
 
@@ -60,26 +68,78 @@ class DnsTestFragment : Fragment() {
 
         return root
     }
-    
+
+
+    private fun sendDnsDataToServer(testResult: DnsTestResult) {
+        val tokenManager = TokenManager(requireContext())
+        val token = tokenManager.getToken()
+        if (token == null) {
+            Toast.makeText(context, "User not authenticated", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val client = OkHttpClient()
+
+        val currentTime = java.time.ZonedDateTime.now().format(java.time.format.DateTimeFormatter.ISO_INSTANT)
+
+        val json = org.json.JSONObject().apply {
+            put("longitude", testResult.longitude)
+            put("latitude", testResult.latitude)
+            put("responsetime", testResult.responseTime)
+            put("hostname", testResult.hostname)
+            put("time", currentTime)
+        }
+
+        val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        val request = Request.Builder()
+            .url("https://odysseyanalytics.ir/polaris/api/dnsdata/create/")
+            .addHeader("Authorization", "Token $token")
+            .addHeader("Content-Type", "application/json")
+            .post(requestBody)
+            .build()
+
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                requireActivity().runOnUiThread {
+                    Toast.makeText(context, "Failed to send data: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                requireActivity().runOnUiThread {
+                    if (response.isSuccessful) {
+                        Toast.makeText(context, "DNS data uploaded successfully", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Upload failed: ${response.code}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
+    }
+
+
     private fun runTest(hostname: String) {
         progressBar.visibility = View.VISIBLE
         startButton.isEnabled = false
         resultText.text = "Running DNS test..."
-        
+
         lifecycleScope.launch {
-            val result = networkTestService.runDnsTest(hostname)
+            val testResult = networkTestService.runDnsTest(hostname)
             progressBar.visibility = View.GONE
             startButton.isEnabled = true
-            
-            if (result >= 0) {
-                resultText.text = "DNS lookup time: ${String.format("%.2f", result)} ms"
+
+            if (testResult != null && testResult.responseTime >= 0) {
+                resultText.text = "DNS lookup time: ${String.format("%.2f", testResult.responseTime)} ms"
+                sendDnsDataToServer(testResult)
             } else {
                 resultText.text = "Error running DNS test. Please check the hostname and try again."
             }
-            
+
             loadPreviousResults()
         }
     }
+
     
     private fun loadPreviousResults() {
         val results = dbHelper.getNetworkTestResults("DNS")
