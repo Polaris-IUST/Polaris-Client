@@ -14,6 +14,7 @@ import com.example.polaris_client.views.MainActivity
 import com.example.polaris_client.R
 import com.example.polaris_client.utils.ThemeManager
 import java.util.*
+import android.location.Location
 
 class BackgroundService : Service() {
     
@@ -164,7 +165,30 @@ class BackgroundService : Service() {
             Log.w("BackgroundService", "POST_NOTIFICATIONS permission not granted, cannot update notification")
         }
     }
-    
+    private var lastSampleTime: Long = 0L
+    private var lastSampleLocation: Location? = null
+    private val MIN_SAMPLE_DISTANCE_M = 20f
+    private val MIN_SAMPLE_INTERVAL_MS = 60_000L // 60 seconds
+
+    private fun shouldSample(location: Location): Boolean {
+        val now = System.currentTimeMillis()
+        val lastLoc = lastSampleLocation
+        val lastTime = lastSampleTime
+
+        val timeOk = now - lastTime > MIN_SAMPLE_INTERVAL_MS
+        val distOk = lastLoc == null || location.distanceTo(lastLoc) > MIN_SAMPLE_DISTANCE_M
+
+        return timeOk || distOk
+    }
+
+    private fun recordSample(location: Location) {
+        lastSampleTime = System.currentTimeMillis()
+        lastSampleLocation = Location(location)
+    }
+
+
+
+
     private fun startDataCollection() {
         // Check permissions before starting location services
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -172,46 +196,51 @@ class BackgroundService : Service() {
             Log.w("BackgroundService", "Location permissions not granted, cannot start data collection")
             return
         }
-        
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
             Log.w("BackgroundService", "Phone state permission not granted, cannot start data collection")
             return
         }
-        
+
         // Start location service
         locationService.startListening(object : android.location.LocationListener {
             override fun onLocationChanged(location: android.location.Location) {
                 // Update location in LocationService
                 LocationService.lastKnownLocation = location
-                
-                // Collect cellular data
-                cellularService.collectCellularData(location)
-                
-                // Update notification with new count
-                dataCollectionCount++
-                updateNotification()
-                
-                Log.d("BackgroundService", "Data collected from location change: $dataCollectionCount samples")
+
+                if (shouldSample(location)) {
+                    cellularService.collectCellularData(location)
+                    recordSample(location)
+                    dataCollectionCount++
+                    updateNotification()
+                    Log.d("BackgroundService", "Data collected from location change: $dataCollectionCount samples")
+                } else {
+                    Log.d("BackgroundService", "Sample skipped (not enough time or distance)")
+                }
             }
-            
+
             override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
             override fun onProviderEnabled(provider: String) {}
             override fun onProviderDisabled(provider: String) {}
         })
-        
+
         // Start cellular data collection
         cellularService.startCollectingData()
-        
+
         // Start timer for periodic data collection (even when location doesn't change)
         dataCollectionTimer = Timer()
         dataCollectionTimer?.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
-                // Collect data using last known location
                 LocationService.lastKnownLocation?.let { location ->
-                    cellularService.collectCellularData(location)
-                    dataCollectionCount++
-                    updateNotification()
-                    Log.d("BackgroundService", "Periodic data collected: $dataCollectionCount samples")
+                    if (shouldSample(location)) {
+                        cellularService.collectCellularData(location)
+                        recordSample(location)
+                        dataCollectionCount++
+                        updateNotification()
+                        Log.d("BackgroundService", "Periodic data collected: $dataCollectionCount samples")
+                    } else {
+                        Log.d("BackgroundService", "Periodic sample skipped (not enough time or distance)")
+                    }
                 }
             }
         }, DATA_COLLECTION_INTERVAL, DATA_COLLECTION_INTERVAL)

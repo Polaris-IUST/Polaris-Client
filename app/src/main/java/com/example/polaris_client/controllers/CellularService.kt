@@ -26,11 +26,10 @@ class CellularService(private val context: Context) {
     val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     val dbHelper = DatabaseHelper(context)
     private var previousLocation: Location? = null
-    fun toIso8601(tsMillis: Long): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
-        sdf.timeZone = TimeZone.getTimeZone("UTC")
-        return sdf.format(Date(tsMillis))
-    }
+    private var lastSampleLocation: Location? = null
+    private var lastSampleTime: Long = 0L
+    private val MIN_SAMPLE_DISTANCE_M = 20f
+    private val MIN_SAMPLE_INTERVAL_MS = 60_000L
     fun startCollectingData() {
         // Check for location permissions
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -67,8 +66,21 @@ class CellularService(private val context: Context) {
 
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
-            Log.d("CellularService", "Location changed: Lat=${location.latitude}, Lon=${location.longitude}")
-            collectCellularData(location)
+            val now = System.currentTimeMillis()
+            val lastLoc = lastSampleLocation
+            val lastTime = lastSampleTime
+
+            val timeOk = now - lastTime > MIN_SAMPLE_INTERVAL_MS
+            val distOk = lastLoc == null || location.distanceTo(lastLoc) > MIN_SAMPLE_DISTANCE_M
+
+            if (timeOk || distOk) {
+                Log.d("CellularService", "Sampling: Lat=${location.latitude}, Lon=${location.longitude}")
+                collectCellularData(location)
+                lastSampleTime = now
+                lastSampleLocation = Location(location) // clone to avoid mutation
+            } else {
+                Log.d("CellularService", "Sample skipped (not enough time or distance)")
+            }
         }
 
         override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
