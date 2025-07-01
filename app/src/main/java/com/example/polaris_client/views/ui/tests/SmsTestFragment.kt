@@ -43,7 +43,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 
-
 class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
 
     private lateinit var phoneInput: TextInputEditText
@@ -425,12 +424,15 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
         }
     }
 
-    private fun sendSmsDataToServer(result: SmsTestResult) {
-        val tokenManager = TokenManager(requireContext())
+    // Sends an SmsTestResult to the server
+    private fun sendSmsDataToServer(context: Context, result: SmsTestResult) {
+        val tokenManager = TokenManager(context)
         val token = tokenManager.getToken()
 
         if (token == null) {
-            Toast.makeText(context, "User not authenticated", Toast.LENGTH_SHORT).show()
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(context, "User not authenticated", Toast.LENGTH_SHORT).show()
+            }
             return
         }
 
@@ -456,7 +458,7 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                requireActivity().runOnUiThread {
+                Handler(Looper.getMainLooper()).post {
                     Toast.makeText(
                         context,
                         "Failed to send SMS data: ${e.localizedMessage}",
@@ -466,7 +468,7 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                requireActivity().runOnUiThread {
+                Handler(Looper.getMainLooper()).post {
                     if (response.isSuccessful) {
                         Toast.makeText(
                             context,
@@ -501,7 +503,7 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
                     resultText.text = "SMS delivered in ${result.deliveryTime} seconds"
 
                     // Send data to server
-                    sendSmsDataToServer(result)
+                    sendSmsDataToServer(requireContext(), result)
                 }
 
                 override fun onSmsDeliveryFailed(error: String) {
@@ -611,6 +613,8 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
                                 result.latitude,
                                 result.longitude
                             )
+                            // Send to server from background
+                            SmsTestFragment().sendSmsDataToServer(context, result)
                         }
 
                         override fun onSmsDeliveryFailed(error: String) {
