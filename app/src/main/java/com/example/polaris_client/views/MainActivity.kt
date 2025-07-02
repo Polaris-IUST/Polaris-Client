@@ -305,23 +305,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     
     private fun toggleBackgroundService() {
+        val navigationView: NavigationView = findViewById(R.id.nav_view)
+        val menuItem = navigationView.menu.findItem(R.id.nav_background_service)
         if (ServiceManager.isBackgroundServiceRunning()) {
             ServiceManager.stopBackgroundService(this)
             Toast.makeText(this, "Background service stopped", Toast.LENGTH_SHORT).show()
+            menuItem.title = "Start Background Service"
         } else {
-            // Check if we have all required permissions
             val missingPermissions = ServiceManager.getMissingPermissions(this)
             if (missingPermissions.isNotEmpty()) {
                 showPermissionExplanationDialog(missingPermissions)
             } else {
                 ServiceManager.startBackgroundService(this)
                 Toast.makeText(this, "Background service started", Toast.LENGTH_SHORT).show()
+                menuItem.title = "Stop Background Service"
             }
         }
-        
-        // Update the menu item text
-        val navigationView: NavigationView = findViewById(R.id.nav_view)
-        updateBackgroundServiceToggleText(navigationView.menu.findItem(R.id.nav_background_service))
     }
 
     private fun showPermissionExplanationDialog(missingPermissions: List<String>) {
