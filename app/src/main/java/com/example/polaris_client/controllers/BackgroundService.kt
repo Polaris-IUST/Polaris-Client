@@ -80,6 +80,8 @@ class BackgroundService : Service() {
         
         // Start data collection
         startDataCollection()
+        // Try to flush cached datapoints on service start
+        com.example.polaris_client.utils.MapDataSender.flushCacheIfNeeded(this)
         
         // Return START_STICKY to restart service if killed
         return START_STICKY
@@ -186,9 +188,6 @@ class BackgroundService : Service() {
         lastSampleLocation = Location(location)
     }
 
-
-
-
     private fun startDataCollection() {
         // Check permissions before starting location services
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -214,6 +213,7 @@ class BackgroundService : Service() {
                     dataCollectionCount++
                     updateNotification()
                     Log.d("BackgroundService", "Data collected from location change: $dataCollectionCount samples")
+                    com.example.polaris_client.utils.MapDataSender.flushCacheIfNeeded(this@BackgroundService)
                 } else {
                     Log.d("BackgroundService", "Sample skipped (not enough time or distance)")
                 }
@@ -238,6 +238,7 @@ class BackgroundService : Service() {
                         dataCollectionCount++
                         updateNotification()
                         Log.d("BackgroundService", "Periodic data collected: $dataCollectionCount samples")
+                        com.example.polaris_client.utils.MapDataSender.flushCacheIfNeeded(this@BackgroundService)
                     } else {
                         Log.d("BackgroundService", "Periodic sample skipped (not enough time or distance)")
                     }

@@ -143,6 +143,7 @@ class CellularService(private val context: Context) {
                             }
                             dbHelper.insertData(latitude, longitude, timestamp, "LTE", plmnId, lac, null, lac, cellId, signalStrength, signalQuality , distanceWalked , cellIdentityLte.ci.toString() , bandwidth , arfcan , "LTE" , signalStrength)
                             MapDataSender.sendDatapoint(context,latitude, longitude, timestamp, "LTE", plmnId, lac, null, lac, cellId, signalStrength, signalQuality , distanceWalked , cellIdentityLte.ci.toString() , bandwidth , arfcan , "LTE" , signalStrength)
+                            MapDataSender.flushCacheIfNeeded(context)
                             Log.d("CellularService", "Data inserted: $latitude, $longitude, $plmnId")
                         } else {
 //                            Log.d("CellularService", "Invalid PLMN ID detected: $plmnId")
@@ -159,6 +160,7 @@ class CellularService(private val context: Context) {
                             val signalStrength = cellSignalStrengthGsm.dbm
                             dbHelper.insertData(latitude, longitude, timestamp, "GSM", plmnId, lac, null, lac, cellId, signalStrength, getGsmSignalQuality(cellSignalStrengthGsm.asuLevel) , distanceWalked , cellIdentityGsm.cid.toString() , band , -1 , "GSM" , signalStrength)
                             MapDataSender.sendDatapoint(context,latitude, longitude, timestamp, "GSM", plmnId, lac, null, lac, cellId, signalStrength, getGsmSignalQuality(cellSignalStrengthGsm.asuLevel) , distanceWalked , cellIdentityGsm.cid.toString() , band , -1 , "GSM" , signalStrength)
+                            MapDataSender.flushCacheIfNeeded(context)
                             Log.d("CellularService", "Data inserted: $latitude, $longitude, $plmnId")
                         } else {
 //                            Log.d("CellularService", "Invalid PLMN ID detected: $plmnId")
@@ -177,6 +179,7 @@ class CellularService(private val context: Context) {
                             val band = "CDMA: 1.25 MHz"
                             dbHelper.insertData(latitude, longitude, timestamp, "CDMA", plmnId, "", null, "", cellId, signalStrength, signalQuality,distanceWalked , cellIdentityCdma.basestationId.toString() , band , arfcan , "CDMA" , signalStrength)
                             MapDataSender.sendDatapoint(context,latitude, longitude, timestamp, "CDMA", plmnId, "", null, "", cellId, signalStrength, signalQuality,distanceWalked , cellIdentityCdma.basestationId.toString() , band , arfcan , "CDMA" , signalStrength)
+                            MapDataSender.flushCacheIfNeeded(context)
                             Log.d("CellularService", "Data inserted: $latitude, $longitude, $plmnId")
                         } else {
 //                            Log.d("CellularService", "Invalid PLMN ID detected: $plmnId")
@@ -195,6 +198,7 @@ class CellularService(private val context: Context) {
                             val signalQuality = getWcdmaSignalQuality(signalStrength)
                             dbHelper.insertData(latitude, longitude, timestamp, "WCDMA", plmnId, lac, null, lac, cellId, signalStrength, signalQuality , distanceWalked, cellIdentityWcdma.cid.toString(), band, arfcan , "WCDMA" , signalStrength)
                             MapDataSender.sendDatapoint(context,latitude, longitude, timestamp, "WCDMA", plmnId, lac, null, lac, cellId, signalStrength, signalQuality , distanceWalked, cellIdentityWcdma.cid.toString(), band, arfcan , "WCDMA" , signalStrength)
+                            MapDataSender.flushCacheIfNeeded(context)
                             Log.d("CellularService", "Data inserted: $latitude, $longitude, $plmnId")
                         } else {
 //                            Log.d("CellularService", "Invalid PLMN ID detected: $plmnId")
@@ -223,6 +227,7 @@ class CellularService(private val context: Context) {
                                         band,arfcan , "NR" , signalStrength)
                                     MapDataSender.sendDatapoint(context,latitude, longitude, timestamp, "NR", plmnId, tac, null, tac, cellId, signalStrength, signalQuality,distanceWalked, cellIdentityNr.nci.toString(),
                                         band,arfcan , "NR" , signalStrength)
+                                    MapDataSender.flushCacheIfNeeded(context)
                                     Log.d("CellularService", "Data inserted: $latitude, $longitude, $plmnId")
                                 } else {
 //                                    Log.d("CellularService", "Invalid PLMN ID detected: $plmnId")
@@ -231,7 +236,7 @@ class CellularService(private val context: Context) {
                         } else {
                             dbHelper.insertData(latitude, longitude, timestamp, "Unknown", "", "", null, "", "", 0, 0 , distanceWalked , "" , "" , -1 ,"Unknown", 0 )
                             MapDataSender.sendDatapoint(context,latitude, longitude, timestamp, "Unknown", "", "", null, "", "", 0, 0 , distanceWalked , "" , "" , -1 ,"Unknown", 0 )
-
+                            MapDataSender.flushCacheIfNeeded(context)
                         }
                     }
                 }
@@ -239,6 +244,7 @@ class CellularService(private val context: Context) {
         } else {
             dbHelper.insertData(latitude, longitude, timestamp, "Unknown", "", "", null, "", "", 0, 0 , distanceWalked , "" , "" , -1 ,"Unknown", 0 )
             MapDataSender.sendDatapoint(context,latitude, longitude, timestamp, "Unknown", "", "", null, "", "", 0, 0 , distanceWalked , "" , "" , -1 ,"Unknown", 0 )
+            MapDataSender.flushCacheIfNeeded(context)
         }
     }
     private fun calculateCdmaBandwidth(cellIdentityCdma: CellIdentityCdma): Int? {

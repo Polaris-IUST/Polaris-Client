@@ -234,11 +234,11 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
             Cell ID: ${entry.cellId}
             Band: ${entry.band}
             ARFCAN: ${entry.arfcan}
-            Signal Strength: ${entry.signalStrength} [dBm] (${getSignalQualityText(signalQuality)})
+            Signal Strength: ${entry.signalStrength} [dBm] (${getSignalQualityText(entry.signalStrength)})
             Technology: ${entry.technology}
             Node ID: ${entry.nodeId}
             Scan Tech: ${entry.scanTech}
-            Scan Serving Signal Power: ${entry.scanServingSigPow} [dBm] (${getSignalQualityText(signalQuality)})
+            Scan Serving Signal Power: ${entry.scanServingSigPow} [dBm] (${getSignalQualityText(entry.scanServingSigPow)})
             Distance Walked: ${String.format("%.2f", entry.distanceWalked)} m
             Timestamp: ${formatTimestamp(entry.timestamp)}
         """.trimIndent())
@@ -370,13 +370,14 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
         }
     }
 
-    fun getSignalQualityText(signalQuality: Int): String {
-        return when (signalQuality) {
-            4 -> "Very good"
-            3 -> "Good"
-            2 -> "Fair"
-            1 -> "Poor"
-            else -> "Very poor or unknown"
+    fun getSignalQualityText(signalPower: Int): String {
+        return when {
+            signalPower in -70..-50 -> "Excellent"
+            signalPower in -85..-71 -> "Good"
+            signalPower in -100..-86 -> "Fair"
+            signalPower in -110..-101 -> "Poor"
+            signalPower <= -111 -> "Very Poor"
+            else -> "Disconnected or Unknown"
         }
     }
     fun getWcdmaSignalQuality(signalStrength: Int): Int {
@@ -473,11 +474,11 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback, NavigationView.OnNa
             Cell ID: ${entry.cellId}
             Band: ${entry.band}
             ARFCAN: ${entry.arfcan}
-            Signal Strength: ${entry.signalStrength} [dBm] (${getSignalQualityText(signalQuality)})
+            Signal Strength: ${entry.signalStrength} [dBm] (${getSignalQualityText(entry.signalStrength)})
             Technology: ${entry.technology}
             Node ID: ${entry.nodeId}
             Scan Tech: ${entry.scanTech}
-            Scan Serving Signal Power: ${entry.scanServingSigPow} [dBm] (${getSignalQualityText(signalQuality)})
+            Scan Serving Signal Power: ${entry.scanServingSigPow} [dBm] (${getSignalQualityText(entry.scanServingSigPow)})
             Distance Walked: ${String.format("%.2f", entry.distanceWalked)} m
             Timestamp: ${formatTimestamp(entry.timestamp)}
         """.trimIndent())
