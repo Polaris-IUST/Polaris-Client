@@ -124,7 +124,7 @@ class NetworkTestService(private val context: Context) {
                 val longitude = LocationService.lastKnownLocation?.longitude ?: 0.0
                 dbHelper.insertNetworkTestData("DNS", responseTime.toString(), hostname, latitude, longitude)
 
-                DnsTestResult(responseTime, latitude, longitude, hostname)
+                DnsTestResult(responseTime, latitude, longitude, hostname,java.time.ZonedDateTime.now().format(java.time.format.DateTimeFormatter.ISO_INSTANT))
 
             } catch (e: Exception) {
                 Log.e("NetworkTestService", "DNS test error: ${e.message}")

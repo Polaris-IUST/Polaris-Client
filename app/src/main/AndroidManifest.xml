@@ -77,15 +77,11 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
-        
-        <!-- Register broadcast receiver for scheduled SMS tests -->
-        <receiver 
-            android:name=".views.ui.tests.SmsTestFragment$SmsAlarmReceiver" 
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.example.polaris_client.SMS_TEST_ALARM" />
-            </intent-filter>
-        </receiver>
+
+        <service
+            android:name=".controllers.DnsTestWorker"
+            android:permission="android.permission.BIND_WORKER_SERVICE"
+            android:exported="false" />
 
     </application>
 </manifest>
