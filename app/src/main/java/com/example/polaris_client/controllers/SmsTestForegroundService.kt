@@ -111,10 +111,14 @@ class SmsTestForegroundService : Service() {
                 Log.e("SmsTestForegroundService", "Failed to send SMS data: ${e.localizedMessage}")
             }
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    Log.i("SmsTestForegroundService", "SMS data uploaded successfully")
-                } else {
-                    Log.e("SmsTestForegroundService", "Upload failed: ${response.code}")
+                try {
+                    if (response.isSuccessful) {
+                        Log.i("SmsTestForegroundService", "SMS data uploaded successfully")
+                    } else {
+                        Log.e("SmsTestForegroundService", "Upload failed: ${response.code}")
+                    }
+                } finally {
+                    response.close()
                 }
             }
         })

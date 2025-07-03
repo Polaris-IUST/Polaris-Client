@@ -64,4 +64,5 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 }

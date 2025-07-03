@@ -44,6 +44,10 @@ import org.json.JSONObject
 import java.io.IOException
 import android.os.Build
 import com.example.polaris_client.controllers.SmsTestForegroundService
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.polaris_client.controllers.SmsTestWorker
 
 class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
 
@@ -254,29 +258,18 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
     }
 
     private fun scheduleTests() {
-        // First cancel any existing scheduled tests
         cancelScheduledTests()
 
-        // Calculate the testing window duration in seconds
-        val startTimeSeconds =
-            startTime.get(Calendar.HOUR_OF_DAY) * 3600 + startTime.get(Calendar.MINUTE) * 60
-        val endTimeSeconds =
-            endTime.get(Calendar.HOUR_OF_DAY) * 3600 + endTime.get(Calendar.MINUTE) * 60
-
-        // Handle case where end time is before start time (next day)
+        val startTimeSeconds = startTime.get(Calendar.HOUR_OF_DAY) * 3600 + startTime.get(Calendar.MINUTE) * 60
+        val endTimeSeconds = endTime.get(Calendar.HOUR_OF_DAY) * 3600 + endTime.get(Calendar.MINUTE) * 60
         var windowDurationSeconds = if (endTimeSeconds > startTimeSeconds) {
             endTimeSeconds - startTimeSeconds
         } else {
             (24 * 3600) - startTimeSeconds + endTimeSeconds
         }
-
-        // Calculate intervals for tests
         var secondsBetweenTests = windowDurationSeconds / testsPerDay
-
-        // Ensure minimum time between tests
         if (secondsBetweenTests < MIN_SECONDS_BETWEEN_TESTS) {
             secondsBetweenTests = MIN_SECONDS_BETWEEN_TESTS
-            // Adjust tests per day based on minimum time between tests
             val adjustedTestsPerDay = windowDurationSeconds / MIN_SECONDS_BETWEEN_TESTS
             if (adjustedTestsPerDay < testsPerDay) {
                 Toast.makeText(
@@ -289,86 +282,40 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
                 testsPerDayText.text = testsPerDay.toString()
             }
         }
-
-        val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val phoneNumber = phoneInput.text.toString()
         val message = messageInput.text.toString()
-
-        // Schedule tests
+        val now = System.currentTimeMillis()
         for (i in 0 until testsPerDay) {
             val testTime = Calendar.getInstance()
-
-            // Set to today's start time first
             testTime.set(Calendar.HOUR_OF_DAY, startTime.get(Calendar.HOUR_OF_DAY))
             testTime.set(Calendar.MINUTE, startTime.get(Calendar.MINUTE))
             testTime.set(Calendar.SECOND, 0)
-
-            // Add interval seconds plus a small random offset to avoid exact repetition
-            val randomOffset = if (secondsBetweenTests <= 4) {
-                0 // No randomization for very small intervals
-            } else {
-                Random().nextInt(Math.max(1, secondsBetweenTests / 4))
-            }
+            val randomOffset = if (secondsBetweenTests <= 4) 0 else Random().nextInt(Math.max(1, secondsBetweenTests / 4))
             val offsetSeconds = i * secondsBetweenTests + randomOffset
             testTime.add(Calendar.SECOND, offsetSeconds)
-
-            // If time has already passed today, schedule for tomorrow
-            if (testTime.timeInMillis < System.currentTimeMillis()) {
+            if (testTime.timeInMillis < now) {
                 testTime.add(Calendar.DAY_OF_YEAR, 1)
             }
-
-            val intent = Intent(requireContext(), SmsAlarmReceiver::class.java).apply {
-                action = ALARM_ACTION
-                putExtra("phone_number", phoneNumber)
-                putExtra("message", message)
-                putExtra("test_id", i)
-            }
-
-            val pendingIntent = PendingIntent.getBroadcast(
-                requireContext(),
-                1000 + i, // Use different request codes for each alarm
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            // Schedule repeating alarm
-            alarmManager.setRepeating(
-                AlarmManager.RTC_WAKEUP,
-                testTime.timeInMillis,
-                AlarmManager.INTERVAL_DAY,
-                pendingIntent
-            )
+            val delay = testTime.timeInMillis - now
+            val inputData = Data.Builder()
+                .putString("phone_number", phoneNumber)
+                .putString("message", message)
+                .putInt("test_id", i)
+                .build()
+            val workRequest = OneTimeWorkRequestBuilder<SmsTestWorker>()
+                .setInitialDelay(delay, TimeUnit.MILLISECONDS)
+                .setInputData(inputData)
+                .addTag("sms_test_scheduled")
+                .build()
+            WorkManager.getInstance(requireContext()).enqueue(workRequest)
         }
-
-        // Save scheduled state
         sharedPreferences.edit()
             .putBoolean("schedule_enabled", true)
             .apply()
     }
 
     private fun cancelScheduledTests() {
-        val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-        // Cancel all possible test alarms
-        for (i in 0 until 24) { // Assuming maximum 24 tests per day
-            val intent = Intent(requireContext(), SmsAlarmReceiver::class.java).apply {
-                action = ALARM_ACTION
-            }
-
-            val pendingIntent = PendingIntent.getBroadcast(
-                requireContext(),
-                1000 + i,
-                intent,
-                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            pendingIntent?.let {
-                alarmManager.cancel(it)
-                it.cancel()
-            }
-        }
-
-        // Save scheduled state
+        WorkManager.getInstance(requireContext()).cancelAllWorkByTag("sms_test_scheduled")
         sharedPreferences.edit()
             .putBoolean("schedule_enabled", false)
             .apply()
@@ -470,20 +417,24 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
             }
 
             override fun onResponse(call: Call, response: Response) {
-                Handler(Looper.getMainLooper()).post {
-                    if (response.isSuccessful) {
-                        Toast.makeText(
-                            context,
-                            "SMS data uploaded successfully",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Upload failed: ${response.code}",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                try {
+                    Handler(Looper.getMainLooper()).post {
+                        if (response.isSuccessful) {
+                            Toast.makeText(
+                                context,
+                                "SMS data uploaded successfully",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Upload failed: ${response.code}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
+                } finally {
+                    response.close()
                 }
             }
         })
@@ -585,28 +536,5 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
     private fun loadPreviousResults() {
         val results = dbHelper.getNetworkTestResults("SMS")
         recyclerView.adapter = TestResultAdapter(results)
-    }
-
-    // Broadcast receiver to handle scheduled SMS tests
-    class SmsAlarmReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == "com.example.polaris_client.SMS_TEST_ALARM") {
-                val phoneNumber = intent.getStringExtra("phone_number") ?: return
-                val message = intent.getStringExtra("message") ?: return
-                val testId = intent.getIntExtra("test_id", 0)
-
-                // Start the foreground service for this test
-                val serviceIntent = Intent(context, SmsTestForegroundService::class.java).apply {
-                    putExtra(SmsTestForegroundService.EXTRA_PHONE, phoneNumber)
-                    putExtra(SmsTestForegroundService.EXTRA_MESSAGE, "$message (Test #$testId)")
-                    putExtra(SmsTestForegroundService.EXTRA_TEST_ID, testId)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(serviceIntent)
-                } else {
-                    context.startService(serviceIntent)
-                }
-            }
-        }
     }
 }
