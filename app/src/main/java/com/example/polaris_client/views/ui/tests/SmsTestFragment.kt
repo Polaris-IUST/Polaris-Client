@@ -42,6 +42,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import android.os.Build
+import com.example.polaris_client.controllers.SmsTestForegroundService
 
 class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
 
@@ -593,48 +595,17 @@ class SmsTestFragment : Fragment(), NetworkTestService.SmsDeliveryListener {
                 val message = intent.getStringExtra("message") ?: return
                 val testId = intent.getIntExtra("test_id", 0)
 
-                // Add test ID to message to differentiate scheduled tests
-                val testMessage = "$message (Test #$testId)"
-
-                // Run the test
-                val networkTestService = NetworkTestService(context)
-                val dbHelper = DatabaseHelper(context)
-
-                networkTestService.runSmsTest(
-                    phoneNumber,
-                    testMessage,
-                    object : NetworkTestService.SmsDeliveryListener {
-                        override fun onSmsDelivered(result: SmsTestResult) {
-                            // Log the test result to database when running in background
-                            dbHelper.insertNetworkTestData(
-                                "SMS",
-                                (result.deliveryTime * 1000).toString(), // Convert seconds to ms if needed
-                                "To: ${result.phoneNumber}, Time: ${result.time}",
-                                result.latitude,
-                                result.longitude
-                            )
-                            // Send to server from background
-                            SmsTestFragment().sendSmsDataToServer(context, result)
-                        }
-
-                        override fun onSmsDeliveryFailed(error: String) {
-                            // Log the failed test to database
-                            dbHelper.insertNetworkTestData(
-                                "SMS",
-                                "-1", // Use -1 to indicate failure
-                                "Failed: $error, To: $phoneNumber, Msg: $testMessage",
-                                0.0, // latitude
-                                0.0  // longitude
-                            )
-                        }
-                    }
-                )
-
-                // Set timeout for SMS delivery
-                Handler(Looper.getMainLooper()).postDelayed({
-                    // This is a simplified timeout mechanism for automated tests
-                    // Actual implementation would need to track each test's state
-                }, 60000) // 60 seconds timeout
+                // Start the foreground service for this test
+                val serviceIntent = Intent(context, SmsTestForegroundService::class.java).apply {
+                    putExtra(SmsTestForegroundService.EXTRA_PHONE, phoneNumber)
+                    putExtra(SmsTestForegroundService.EXTRA_MESSAGE, "$message (Test #$testId)")
+                    putExtra(SmsTestForegroundService.EXTRA_TEST_ID, testId)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
             }
         }
     }
