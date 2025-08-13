@@ -94,7 +94,6 @@ This project is made possible by a dedicated team of developers and researchers.
 | *Niusha Yaghini* | *Frontend Developer* |
 | *Mahdi Oshani* | *Android Developer and Backend Developer* |
 
-*(Please replace the placeholder text and add images for each team member.)*
 
 ---
 
