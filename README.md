@@ -90,9 +90,9 @@ This project is made possible by a dedicated team of developers and researchers.
 
 | Name | Role |
 | :---: | :---: |
-| *[Ali Samadifard]* | *[Android Developer and Backend Developer]* |
-| *[Niusha Yaghini]* | *[Frontend Developer]* |
-| *[Mahdi Oshani]* | *[Android Developer and Backend Developer]* |
+| *Ali Samadifard* | *Android Developer and Backend Developer* |
+| *Niusha Yaghini* | *Frontend Developer* |
+| *Mahdi Oshani* | *Android Developer and Backend Developer* |
 
 *(Please replace the placeholder text and add images for each team member.)*
 
