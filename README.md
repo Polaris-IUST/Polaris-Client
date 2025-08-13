@@ -34,7 +34,7 @@ The application is built to run seamlessly in the background to collect data per
 
 ## Documentation
 
-For a complete guide on all features and how to use them, please refer to our official **[User Manual](./Documents/USER_MANUAL.pdf)**.
+For a complete guide on all features and how to use them, please refer to our official **[User Manual](./Documents/User_Manual.pdf)**.
 
 For a detailed overview of the project, including the goals, architecture, tools, and methodologies used, please see our **[Project Report](./Documents/ProjectReport.pdf)**.
 
