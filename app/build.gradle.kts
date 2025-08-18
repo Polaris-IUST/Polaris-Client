@@ -4,6 +4,26 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        create("release") {
+            storeFile = file("my-release-key.jks")
+            storePassword = System.getenv("MY_RELEASE_KEY_PASSWORD") ?: property("MY_RELEASE_KEY_PASSWORD") as String
+            keyAlias = System.getenv("MY_RELEASE_KEY_ALIAS") ?: property("MY_RELEASE_KEY_ALIAS") as String
+            keyPassword = System.getenv("MY_RELEASE_PRIVATE_KEY_PASSWORD") ?: property("MY_RELEASE_PRIVATE_KEY_PASSWORD") as String
+        }
+    }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // Tell the release build to use the signing config
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
     namespace = "com.example.polaris_client"
     compileSdk = 34
 
